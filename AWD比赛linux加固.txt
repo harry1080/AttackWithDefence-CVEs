@@ -1,0 +1,128 @@
+ssh user@172.20.10.3
+
+登陆root
+sudo su
+改密码
+passwd
+a37D60d7e8Ebc245
+
+找网站目录
+ls /var/www
+locate index.php
+
+网站备份脚本
+bak.sh
+#!/bin/sh
+tar czvf $1.$(date +%Y%m%d-%H%M%S).tgz $1
+exit $?
+保存到本地
+
+降权
+chmod -R 555 /var/www/
+如果网站出现报错，则恢复缓存目录的权限，如有必要，恢复该网站全部文件的权限
+如果报错返回 cache 地址， 则查找该缓存地址
+locate [cache]
+然后恢复权限
+chmod -R 755 /var/www/[cache]
+
+重启apache2
+service apache2 restart
+
+登陆数据库
+mysql -u root -p123456
+
+查看mysql版本信息
+mysql> SELECT VERSION();
+
+查看mysql所有用户
+SELECT DISTINCT CONCAT('User: ''',user,'''@''',host,''';') AS query FROM mysql.user;
+
+查看用户权限：
+show grants for root@localhost;
+
+备份数据库
+show databases;
+mysqldump -u root -p * > *.bak
+保存到本地
+
+修改root密码，并将权限设置为只能读取
+grant select on *.* to root@"%" identified by "a37D60d7e8Ebc245";
+flush privileges;
+
+mysql -u root -p
+use mysql;
+update user set password=password("a37D60d7e8Ebc245") where user='root';
+flush privileges;
+exit
+
+grant select,delete,update,create,drop on *.* to root@"localhost" identified by "a37D60d7e8Ebc245";
+grant select on *.* to root@"%" identified by "a37D60d7e8Ebc245";
+flush privileges;
+
+确保数据库不存在弱口令，提高数据库安全性
+mysql>use mysql
+mysql> select user,password from mysql.user;
+
+如要修改密码，执行如下命令：
+首先以root用户登录
+mysql>use mysql 
+mysql>update user set password=password('复杂的新密码') where user='test';
+mysql> flush privileges;
+
+检查匿名帐户是否存在
+mysql>use mysql;
+mysql> select user,password from mysql.user;
+存在user和password字段均为空的行
+
+删除匿名帐户：
+mysql>use mysql;
+mysql>delete from user where user='';  
+mysql>flush privileges;
+
+一般应用用户建议授予最小权限。
+方法：
+grant 权限1,权限2,…权限n on 数据库名称.表名称 to 用户名@用户地址
+例如：grant select,insert,delete on db.table to test@localhost;
+
+为低权限用户增加Web数据库授权
+GRANT select ON dede.* TO 'testuser'@'localhost';
+GRANT select ON discuz.* TO 'testuser'@'localhost';
+GRANT select ON phpok.* TO 'testuser'@'localhost';
+GRANT select ON toa.* TO 'testuser'@'localhost';
+flush privileges;
+
+确保重要的数据库文件没有任意可写权限或任意可读权限
+检查是否有不恰当的授权文件：
+# ls -al .mysql_history  .bash_history   应为600权限
+#ls –al /etc/my.cnf  应为644权限
+#find / -name .MYD |xargs ls –al       应为600权限
+#find / -name .MYI |xargs ls –al        应为600权限
+#find / -name .frm |xargs ls –al        应为600权限
+
+保护数据库文件，授予恰当的权限：
+#chmod 600 .mysql_history  .bash_history
+#chmod 600 *.MYD *.MYI *.frm
+#chmod o-rw /etc/my.cnf
+
+防火墙
+清规则
+iptables -F
+iptables -X
+iptabels -Z
+配置端口访问
+iptables -A INPUT -s localhost -d localhost -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT//允许ssh的端口通过
+iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT//允许web的端口通过
+iptables -A OUTPUT -j ACCEPT//允许所有本机向外的访问
+iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT//允许已建立的和服务器发起的数据包通过
+iptables -P INPUT DROP //丢弃所有未允许通过的数据包
+
+新建终端能连接则保存规则
+service iptables save //或 sudo iptables-save
+
+修改cms密码
+
+
+
+
+
